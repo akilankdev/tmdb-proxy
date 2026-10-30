@@ -49,8 +49,8 @@ app.get("/popular",async (req,res)=> {
   }
 });
 
-
-app.listen(PORT, () => {
+// Binding to 0.0.0.0 allows Render to receive external requests.
+app.listen(PORT,"0.0.0.0",() => {
   // console.log(`Server running on Port: ${PORT}`);
-  console.log("TMDB token loaded:", Boolean(process.env.TMDB_ACCESS_TOKEN));
+  console.log("Server running on port: " + PORT);
 });
