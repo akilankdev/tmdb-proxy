@@ -1,11 +1,13 @@
-//dotenv is a package that reads the .env file and makes its values available through process.env
 require("dotenv").config();
-//Now our backend can access the token through process.env.TMDB_ACCESS_TOKEN
-
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
+
+const API_OPTIONS = {
+  method: 'GET',
+  headers: {accept: 'application/json', Authorization: `Bearer ${process.env.TMDB_ACCESS_TOKEN}`}
+};
 
 app.use(
   cors({
@@ -21,6 +23,32 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+app.get("/popular",async (req,res)=> {
+  try {
+    const response = await fetch("https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",API_OPTIONS);
+
+    // Check whether TMDB returned a successful response
+    if(!response.ok) {
+      console.error("TMDB response status", response.status);
+
+      return res.status(response.status).json({
+        error: "Failed to fetch popular movies from TMDB",
+      });
+    }
+    const data = await response.json();
+    // Send TMDB's movie data to our frontend
+    res.json(data);
+
+  } catch(error) {
+    console.error("Unable to connect to TMDB Servers");
+
+    res.status(502).json({
+      error: "Unable to connect to TMDB Servers"
+    });
+  }
+});
+
 
 app.listen(PORT, () => {
   // console.log(`Server running on Port: ${PORT}`);
