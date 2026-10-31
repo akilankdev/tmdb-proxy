@@ -6,6 +6,7 @@ const app = express();
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3/";
 
+//Copied from TMDB API DOCUMENTATION
 const API_OPTIONS = {
   method: "GET",
   headers: {
@@ -17,7 +18,7 @@ const API_OPTIONS = {
 app.use(
   cors({
     origin: [
-      "https://localhost:3000",
+      "https://localhost:3000/",
       "https://netflix-gpt-flax-zeta.vercel.app/",
     ],
   }),
@@ -43,6 +44,25 @@ const handleTMDBRequest = (endpoint) => {
       res.json(result);
     } catch (error) {
       console.error("TMDB error: ", error.message);
+      res.status(error.status || 502);
+      //sends the response to frontend
+      res.json({
+        error: "Unable to connect to TMDB servers",
+      });
+    }
+  };
+};
+
+//we are actually passing an actual function here as an argument.This is function currying.
+const handleDynamicTMDBRequest = (endpointBuilder) => {
+  return async (req, res, next) => {
+    try {
+      //endpointBuilder is a Fn that gives us the correct dynamic URL path for that specific movie.
+      const endpoint = endpointBuilder(req);
+      const result = await fetchFromTMDB(endpoint);
+      res.json(result);
+    } catch (error) {
+      console.error("TMDB error: " + error.message);
       res.status(error.status || 502).json({
         error: "Unable to connect to TMDB servers",
       });
@@ -50,43 +70,28 @@ const handleTMDBRequest = (endpoint) => {
   };
 };
 
-app.get("/top-rated",handleTMDBRequest("movie/top_rated?language=en-US&page=1"));
-app.get("/upcoming",handleTMDBRequest("movie/upcoming?language=en-US&page=1"));
-app.get("/popular",handleTMDBRequest("movie/popular?language=en-US&page=1"));
-app.get("/now-playing",handleTMDBRequest("movie/now_playing?language=en-US&page=1"));
-app.get("/rated-shows",handleTMDBRequest("tv/top_rated?language=en-US&page=1"));
+app.get("/movie/:movieId/videos",handleDynamicTMDBRequest(
+  //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
+  (req) => "movie/"+ req.params.movieId +"/videos?language=en-US"
+));
 
-// app.get("/popular", async (req, res) => {
-//   try {
-//     const response = await fetch(
-//       "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",
-//       API_OPTIONS,
-//     );
-
-//     // Check whether TMDB returned a successful response
-//     if (!response.ok) {
-//       console.error("TMDB response status", response.status);
-
-//       return res.status(response.status).json({
-//         error: "Failed to fetch popular movies from TMDB",
-//       });
-//     }
-//     const data = await response.json();
-//     // Send TMDB's movie data to our frontend
-//     res.json(data);
-//   } catch (error) {
-//     console.error("Unable to connect to TMDB Servers");
-
-//     res.status(502).json({
-//       error: "Unable to connect to TMDB Servers",
-//     });
-//   }
-// });
+app.get(
+  "/top-rated",
+  handleTMDBRequest("movie/top_rated?language=en-US&page=1"),
+);
+app.get("/upcoming", handleTMDBRequest("movie/upcoming?language=en-US&page=1"));
+app.get("/popular", handleTMDBRequest("movie/popular?language=en-US&page=1"));
+app.get(
+  "/now-playing",
+  handleTMDBRequest("movie/now_playing?language=en-US&page=1"),
+);
+app.get(
+  "/rated-shows",
+  handleTMDBRequest("tv/top_rated?language=en-US&page=1"),
+);
 
 const PORT = process.env.PORT || 5000;
 
-// Binding to 0.0.0.0 allows Render to receive external requests.
 app.listen(PORT, "0.0.0.0", () => {
-  // console.log(`Server running on Port: ${PORT}`);
   console.log("Server running on port: " + PORT);
 });
