@@ -51,33 +51,37 @@ const handleTMDBRequest = (endpoint) => {
 };
 
 app.get("/top-rated",handleTMDBRequest("movie/top_rated?language=en-US&page=1"));
+app.get("/upcoming",handleTMDBRequest("movie/upcoming?language=en-US&page=1"));
+app.get("/popular",handleTMDBRequest("movie/popular?language=en-US&page=1"));
+app.get("/now-playing",handleTMDBRequest("movie/now_playing?language=en-US&page=1"));
+app.get("/rated-shows",handleTMDBRequest("tv/top_rated?language=en-US&page=1"));
 
-app.get("/popular", async (req, res) => {
-  try {
-    const response = await fetch(
-      "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",
-      API_OPTIONS,
-    );
+// app.get("/popular", async (req, res) => {
+//   try {
+//     const response = await fetch(
+//       "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",
+//       API_OPTIONS,
+//     );
 
-    // Check whether TMDB returned a successful response
-    if (!response.ok) {
-      console.error("TMDB response status", response.status);
+//     // Check whether TMDB returned a successful response
+//     if (!response.ok) {
+//       console.error("TMDB response status", response.status);
 
-      return res.status(response.status).json({
-        error: "Failed to fetch popular movies from TMDB",
-      });
-    }
-    const data = await response.json();
-    // Send TMDB's movie data to our frontend
-    res.json(data);
-  } catch (error) {
-    console.error("Unable to connect to TMDB Servers");
+//       return res.status(response.status).json({
+//         error: "Failed to fetch popular movies from TMDB",
+//       });
+//     }
+//     const data = await response.json();
+//     // Send TMDB's movie data to our frontend
+//     res.json(data);
+//   } catch (error) {
+//     console.error("Unable to connect to TMDB Servers");
 
-    res.status(502).json({
-      error: "Unable to connect to TMDB Servers",
-    });
-  }
-});
+//     res.status(502).json({
+//       error: "Unable to connect to TMDB Servers",
+//     });
+//   }
+// });
 
 const PORT = process.env.PORT || 5000;
 
