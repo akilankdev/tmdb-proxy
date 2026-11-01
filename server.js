@@ -18,7 +18,7 @@ const API_OPTIONS = {
 app.use(
   cors({
     origin: [
-      "https://localhost:3000",
+      "http://localhost:3000",
       "https://netflix-gpt-flax-zeta.vercel.app",
     ],
   }),
