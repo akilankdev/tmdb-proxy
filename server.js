@@ -70,9 +70,21 @@ const handleDynamicTMDBRequest = (endpointBuilder) => {
   };
 };
 
+//For getting movie related Videos
 app.get("/movie/:movieId/videos",handleDynamicTMDBRequest(
   //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
   (req) => "movie/"+ req.params.movieId +"/videos?language=en-US"
+));
+
+//For getting Show Details
+app.get("/tv/:seriesId",handleDynamicTMDBRequest(
+  //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
+  (req) => "tv/"+ req.params.seriesId +"?language=en-US"
+));
+//For getting Show related Videos
+app.get("/tv/:seriesId/videos",handleDynamicTMDBRequest(
+  //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
+  (req) => "tv/"+ req.params.seriesId +"/videos?language=en-US"
 ));
 
 app.get(
