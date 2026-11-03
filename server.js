@@ -46,7 +46,9 @@ const fetchFromTMDB = async (endpoint) => {
 };
 
 const searchMoviesOnTMDB = async (movieTitle) => {
-  const endpoint = `search/movie?query=${movieTitle}&include_adult=false&language=en-US&page=1`;
+  // Use encodeURIComponent to safely handle spaces and special characters
+  const encodedQuery = encodeURIComponent(movieTitle);
+  const endpoint = `search/movie?query=${encodedQuery}&include_adult=false&language=en-US&page=1`;
   const results = await fetchFromTMDB(endpoint);
   return results;
 };
@@ -83,9 +85,19 @@ const handleDynamicTMDBRequest = (endpointBuilder) => {
     }
   };
 };
+
+//TMDB SEARCH API
 app.get("/search", async (req, res) => {
   try {
-    const results = await searchMoviesOnTMDB("Leo");
+    //'movie' field in query is just a developer chosen name
+    const query = req.query.movie;
+    //handling empty queries like "" or "   "
+    if(!query || !query.trim()){
+      return res.status(400).json({
+        error: "Search query is required",
+      });
+    }
+    const results = await searchMoviesOnTMDB(query);
     res.json(results);
   } catch (error) {
     console.error("Failed to fetch search results :" + error.message);
