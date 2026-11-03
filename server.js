@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const {GoogleGenAI,Type} = require("@google/genai");
+const { GoogleGenAI, Type } = require("@google/genai");
 
 const app = express();
 
@@ -44,6 +44,13 @@ const fetchFromTMDB = async (endpoint) => {
   }
   return response.json();
 };
+
+const searchMoviesOnTMDB = async (movieTitle) => {
+  const endpoint = `search/movie?query=${movieTitle}&include_adult=false&language=en-US&page=1`;
+  const results = await fetchFromTMDB(endpoint);
+  return results;
+};
+
 const handleTMDBRequest = (endpoint) => {
   return async (req, res) => {
     try {
@@ -71,28 +78,48 @@ const handleDynamicTMDBRequest = (endpointBuilder) => {
     } catch (error) {
       console.error("TMDB error: " + error.message);
       res.status(error.status || 502).json({
-        error: "Unable to connect to TMDB servers",
+        "error" : "Unable to connect to TMDB servers",
       });
     }
   };
 };
+app.get("/search", async (req, res) => {
+  try {
+    const results = await searchMoviesOnTMDB("Leo");
+    res.json(results);
+  } catch (error) {
+    console.error("Failed to fetch search results :" + error.message);
+    res.status(502).json({
+      error: "Unable to reach TMDB server",
+    });
+  }
+});
 
 //For getting movie related Videos
-app.get("/movie/:movieId/videos",handleDynamicTMDBRequest(
-  //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
-  (req) => "movie/"+ req.params.movieId +"/videos?language=en-US"
-));
+app.get(
+  "/movie/:movieId/videos",
+  handleDynamicTMDBRequest(
+    //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
+    (req) => "movie/" + req.params.movieId + "/videos?language=en-US",
+  ),
+);
 
 //For getting Show Details
-app.get("/tv/:seriesId",handleDynamicTMDBRequest(
-  //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
-  (req) => "tv/"+ req.params.seriesId +"?language=en-US"
-));
+app.get(
+  "/tv/:seriesId",
+  handleDynamicTMDBRequest(
+    //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
+    (req) => "tv/" + req.params.seriesId + "?language=en-US",
+  ),
+);
 //For getting Show related Videos
-app.get("/tv/:seriesId/videos",handleDynamicTMDBRequest(
-  //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
-  (req) => "tv/"+ req.params.seriesId +"/videos?language=en-US"
-));
+app.get(
+  "/tv/:seriesId/videos",
+  handleDynamicTMDBRequest(
+    //here,the below callback fn is the 'endpointBuilder(req)' which is called inside handleDynamicTMDBRequest() fn.
+    (req) => "tv/" + req.params.seriesId + "/videos?language=en-US",
+  ),
+);
 
 app.get(
   "/top-rated",
@@ -109,18 +136,18 @@ app.get(
   handleTMDBRequest("tv/top_rated?language=en-US&page=1"),
 );
 
-app.post("/gemini-recommendations",async(req,res)=> {
-  try{
+app.post("/gemini-recommendations", async (req, res) => {
+  try {
     const prompt = req.body.prompt;
     //Validate the prompt
-    if(!prompt || !prompt.trim()) {
+    if (!prompt || !prompt.trim()) {
       return res.status(400).json({
         error: "Prompt is required",
       });
     }
     //send prompt to Gemini
     const response = await ai.models.generateContent({
-      model:"gemini-3.5-flash-lite",
+      model: "gemini-3.5-flash-lite",
       contents: `Recommend exactly 5 movies based on this request: ${prompt}`,
       //config ensures the AI response is always an JSON type
       config: {
@@ -146,8 +173,8 @@ app.post("/gemini-recommendations",async(req,res)=> {
     const result = JSON.parse(response.text);
     //res.json() turn that JS obj into valid JSON response payload for your frontend
     res.json(result);
-  } catch(error) {
-    console.error("Gemini error: ",error.message);
+  } catch (error) {
+    console.error("Gemini error: ", error.message);
     res.status(502).json({
       error: "Unable to generate movie recommendations",
     });
