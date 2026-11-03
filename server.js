@@ -1,10 +1,15 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const {GoogleGenAI} = require("@google/genai");
 
 const app = express();
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3/";
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 //Copied from TMDB API DOCUMENTATION
 const API_OPTIONS = {
@@ -23,6 +28,8 @@ app.use(
     ],
   }),
 );
+
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("TMDB Proxy server is running!");
@@ -102,8 +109,33 @@ app.get(
   handleTMDBRequest("tv/top_rated?language=en-US&page=1"),
 );
 
-const PORT = process.env.PORT || 5000;
+app.post("/gemini-recommendations",async(req,res)=> {
+  try{
+    const prompt = req.body.prompt;
+    //Validate the prompt
+    if(!prompt || !prompt.trim()) {
+      return res.status(400).json({
+        error: "Prompt is required",
+      });
+    }
+    //send prompt to Gemini
+    const response = await ai.models.generateContent({
+      model:"gemini-3.5-flash-lite",
+      contents: prompt,
+    });
+    //Send Gemini generated text to the client
+    res.json({
+      recommendations: response.text,
+    });
+  } catch(error) {
+    console.error("Gemini error: ",error.message);
+    res.status(502).json({
+      error: "Unable to generate movie recommendations",
+    });
+  }
+});
 
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running on port: " + PORT);
 });
