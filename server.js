@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const {GoogleGenAI} = require("@google/genai");
+const {GoogleGenAI,Type} = require("@google/genai");
 
 const app = express();
 
@@ -121,12 +121,31 @@ app.post("/gemini-recommendations",async(req,res)=> {
     //send prompt to Gemini
     const response = await ai.models.generateContent({
       model:"gemini-3.5-flash-lite",
-      contents: prompt,
+      contents: `Recommend exactly 5 movies based on this request: ${prompt}`,
+      //config ensures the AI response is always an JSON type
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: {
+          type: Type.OBJECT,
+          properties: {
+            //'movies' property will have array of recommended movie titles
+            movies: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.STRING,
+              },
+            },
+          },
+
+          required: ["movies"],
+        },
+      },
     });
     //Send Gemini generated text to the client
-    res.json({
-      recommendations: response.text,
-    });
+    // JSON.parse() converts that Raw string into a JavaScript object.
+    const result = JSON.parse(response.text);
+    //res.json() turn that JS obj into valid JSON response payload for your frontend
+    res.json(result);
   } catch(error) {
     console.error("Gemini error: ",error.message);
     res.status(502).json({
