@@ -50,8 +50,14 @@ const searchMoviesOnTMDB = async (movieTitle) => {
   const encodedQuery = encodeURIComponent(movieTitle);
   const endpoint = `search/movie?query=${encodedQuery}&include_adult=false&language=en-US&page=1`;
   const results = await fetchFromTMDB(endpoint);
-  //Returning only the first matching movie
-  return results.results[0] || null;
+  console.log("Searching for the title: "+ movieTitle);
+  // If TMDB returns an unexpected response without a results property, movies.filter() will throw an error.Thats why [] is used as a fallback
+  const movies = results?.results || [];
+  //Finding the movies which match the exact title.
+  const exactMatches = movies.filter((movie)=>movie.title.toLowerCase() === movieTitle.toLowerCase() || movie.original_title.toLowerCase() === movieTitle.toLowerCase());
+  // If exact matches exist, return them. Otherwise, fall back to the top result (if any)!
+  if(exactMatches.length > 0) return exactMatches;
+  return movies.length > 0? [movies[0],] : []; 
 };
 
 const handleTMDBRequest = (endpoint) => {
@@ -81,7 +87,7 @@ const handleDynamicTMDBRequest = (endpointBuilder) => {
     } catch (error) {
       console.error("TMDB error: " + error.message);
       res.status(error.status || 502).json({
-        "error" : "Unable to connect to TMDB servers",
+        error: "Unable to connect to TMDB servers",
       });
     }
   };
@@ -93,7 +99,7 @@ app.get("/search", async (req, res) => {
     //'movie' field in query is just a developer chosen name
     const query = req.query.movie;
     //handling empty queries like "" or "   "
-    if(!query || !query.trim()){
+    if (!query || !query.trim()) {
       return res.status(400).json({
         error: "Search query is required",
       });
@@ -161,7 +167,8 @@ app.post("/gemini-recommendations", async (req, res) => {
     //send prompt to Gemini
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash-lite",
-      contents: `Recommend exactly 5 movies based on this request: ${prompt}`,
+      contents: `Recommend exactly 5 movies based on this request: ${prompt}.
+      Make sure every recommendation is relevant to the user's request.If the user mentions an actor, recommend movies in which that actor actually appears.Do not recommend movies based only on similarities in their titles.`,
       //config ensures the AI response is always an JSON type
       config: {
         responseMimeType: "application/json",
@@ -185,8 +192,10 @@ app.post("/gemini-recommendations", async (req, res) => {
     // JSON.parse() converts that Raw string into a JavaScript object.
     const geminiMovieTitles = JSON.parse(response.text);
     //res.json() turn that JS obj into valid JSON response payload for your frontend
-    const movieResults =await Promise.all(
-      geminiMovieTitles.movies.map((movieTitle) => searchMoviesOnTMDB(movieTitle))
+    const movieResults = await Promise.all(
+      geminiMovieTitles.movies.map((movieTitle) =>
+        searchMoviesOnTMDB(movieTitle),
+      ),
     );
     res.json({
       movies: movieResults,
