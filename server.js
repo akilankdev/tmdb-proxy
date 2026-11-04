@@ -55,8 +55,16 @@ const searchMoviesOnTMDB = async (movieTitle) => {
   const movies = results?.results || [];
   //Finding the movies which match the exact title.
   const exactMatches = movies.filter((movie)=>movie.title.toLowerCase() === movieTitle.toLowerCase() || movie.original_title.toLowerCase() === movieTitle.toLowerCase());
-  // If exact matches exist, return them. Otherwise, fall back to the top result (if any)!
-  if(exactMatches.length > 0) return exactMatches;
+  
+  // 2. If we found exact matches, let's process them
+  if(exactMatches.length > 0) {
+    // Sort by popularity (highest first) so 
+    // the most well-known movie is always at the top
+    exactMatches.sort((a,b) => b.popularity - a.popularity);
+    // If there are more than 3, slice it down to the top 3 most popular ones
+    return exactMatches.length > 3? exactMatches.slice(0,3) : exactMatches;
+  }
+
   return movies.length > 0? [movies[0],] : []; 
 };
 
