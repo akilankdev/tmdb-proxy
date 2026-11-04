@@ -50,22 +50,26 @@ const searchMoviesOnTMDB = async (movieTitle) => {
   const encodedQuery = encodeURIComponent(movieTitle);
   const endpoint = `search/movie?query=${encodedQuery}&include_adult=false&language=en-US&page=1`;
   const results = await fetchFromTMDB(endpoint);
-  console.log("Searching for the title: "+ movieTitle);
+  console.log("Searching for the title: " + movieTitle);
   // If TMDB returns an unexpected response without a results property, movies.filter() will throw an error.Thats why [] is used as a fallback
   const movies = results?.results || [];
   //Finding the movies which match the exact title.
-  const exactMatches = movies.filter((movie)=>movie.title.toLowerCase() === movieTitle.toLowerCase() || movie.original_title.toLowerCase() === movieTitle.toLowerCase());
-  
+  const exactMatches = movies.filter(
+    (movie) =>
+      movie.title.toLowerCase() === movieTitle.toLowerCase() ||
+      movie.original_title.toLowerCase() === movieTitle.toLowerCase(),
+  );
+
   // 2. If we found exact matches, let's process them
-  if(exactMatches.length > 0) {
-    // Sort by popularity (highest first) so 
+  if (exactMatches.length > 0) {
+    // Sort by popularity (highest first) so
     // the most well-known movie is always at the top
-    exactMatches.sort((a,b) => b.popularity - a.popularity);
+    exactMatches.sort((a, b) => b.popularity - a.popularity);
     // If there are more than 3, slice it down to the top 3 most popular ones
-    return exactMatches.length > 3? exactMatches.slice(0,3) : exactMatches;
+    return exactMatches.length > 3 ? exactMatches.slice(0, 3) : exactMatches;
   }
 
-  return movies.length > 0? [movies[0],] : []; 
+  return movies.length > 0 ? [movies[0]] : [];
 };
 
 const handleTMDBRequest = (endpoint) => {
@@ -200,13 +204,23 @@ app.post("/gemini-recommendations", async (req, res) => {
     // JSON.parse() converts that Raw string into a JavaScript object.
     const geminiMovieTitles = JSON.parse(response.text);
     //res.json() turn that JS obj into valid JSON response payload for your frontend
-    const movieResults = await Promise.all(
+    //Promise.allSettled() gives results even if one Search API call fails.
+    const movieResults = await Promise.allSettled(
       geminiMovieTitles.movies.map((movieTitle) =>
         searchMoviesOnTMDB(movieTitle),
       ),
     );
+    //flat() combines the nested arrays into one dimensional array.
+    //Promise.allSettled() will wrap the movie details with object,it will have 'status' & 'value'.
+    //.filter() will get the succesful Search API results
+    //.map() gets the actual movie details from the Promise wrapper object.
+    const flattenedMovies = movieResults
+      .filter((promiseWrapper) => promiseWrapper.status === "fulfilled")
+      .map((promiseWrapper) => promiseWrapper.value)
+      .flat();
+
     res.json({
-      movies: movieResults,
+      movies: flattenedMovies,
     });
   } catch (error) {
     console.error("Gemini error: ", error.message);
