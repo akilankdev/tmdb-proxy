@@ -50,7 +50,8 @@ const searchMoviesOnTMDB = async (movieTitle) => {
   const encodedQuery = encodeURIComponent(movieTitle);
   const endpoint = `search/movie?query=${encodedQuery}&include_adult=false&language=en-US&page=1`;
   const results = await fetchFromTMDB(endpoint);
-  return results;
+  //Returning only the first matching movie
+  return results.results[0] || null;
 };
 
 const handleTMDBRequest = (endpoint) => {
@@ -182,9 +183,14 @@ app.post("/gemini-recommendations", async (req, res) => {
     });
     //Send Gemini generated text to the client
     // JSON.parse() converts that Raw string into a JavaScript object.
-    const result = JSON.parse(response.text);
+    const geminiMovieTitles = JSON.parse(response.text);
     //res.json() turn that JS obj into valid JSON response payload for your frontend
-    res.json(result);
+    const movieResults =await Promise.all(
+      geminiMovieTitles.movies.map((movieTitle) => searchMoviesOnTMDB(movieTitle))
+    );
+    res.json({
+      movies: movieResults,
+    });
   } catch (error) {
     console.error("Gemini error: ", error.message);
     res.status(502).json({
