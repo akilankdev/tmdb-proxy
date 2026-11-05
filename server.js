@@ -214,14 +214,16 @@ app.post("/gemini-recommendations", async (req, res) => {
       }),
     );
 
-    const movieGroups = moviePromises.map((promise,index) => {
-      if(promise.status === "fulfilled"){
+    const movieGroups = moviePromises.map((promise, index) => {
+      if (promise.status === "fulfilled") {
         return promise.value;
       }
       //Gemini titles array and Promise array are always in same order
       //,so thats why we used promise index for to access geminititles array value.
       //If promise is rejected,then apply the code ahead.
-      console.error(`TMDB search failed for ${geminiMovieTitles[index]}: ${promise.reason}`);
+      console.error(
+        `TMDB search failed for ${geminiMovieTitles[index]}: ${promise.reason}`,
+      );
 
       return {
         geminiTitle: geminiMovieTitles[index],
@@ -235,9 +237,18 @@ app.post("/gemini-recommendations", async (req, res) => {
       movieGroups: movieGroups,
     });
   } catch (error) {
-    console.error("Gemini error: ", error.message);
-    res.status(502).json({
-      error: "Unable to generate movie recommendations",
+    console.error("Gemini Error: " + error.message);
+    let errorMessage = error.message;
+    let statusCode = error.status || 502;
+    try {
+      const parsedError = JSON.parse(error.message);
+      errorMessage = parsedError.error.message;
+      statusCode = parsedError.error.code || statusCode;
+    } catch (parseError) {
+      //Leave it empty
+    }
+    res.status(statusCode).json({
+      error: errorMessage,
     });
   }
 });
