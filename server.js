@@ -105,7 +105,7 @@ const handleDynamicTMDBRequest = (endpointBuilder) => {
   };
 };
 
-//TMDB SEARCH API
+//TMDB SEARCH ROUTE
 app.get("/search", async (req, res) => {
   try {
     //'movie' field in query is just a developer chosen name
@@ -202,25 +202,37 @@ app.post("/gemini-recommendations", async (req, res) => {
     });
     //Send Gemini generated text to the client
     // JSON.parse() converts that Raw string into a JavaScript object.
-    const geminiMovieTitles = JSON.parse(response.text);
-    //res.json() turn that JS obj into valid JSON response payload for your frontend
-    //Promise.allSettled() gives results even if one Search API call fails.
-    const movieResults = await Promise.allSettled(
-      geminiMovieTitles.movies.map((movieTitle) =>
-        searchMoviesOnTMDB(movieTitle),
-      ),
-    );
-    //flat() combines the nested arrays into one dimensional array.
-    //Promise.allSettled() will wrap the movie details with object,it will have 'status' & 'value'.
-    //.filter() will get the succesful Search API results
-    //.map() gets the actual movie details from the Promise wrapper object.
-    const flattenedMovies = movieResults
-      .filter((promiseWrapper) => promiseWrapper.status === "fulfilled")
-      .map((promiseWrapper) => promiseWrapper.value)
-      .flat();
+    const geminiMovieTitles = JSON.parse(response.text).movies;
 
+    const moviePromises = await Promise.allSettled(
+      geminiMovieTitles.map(async (movieTitle) => {
+        const movies = await searchMoviesOnTMDB(movieTitle);
+        return {
+          geminiTitle: movieTitle,
+          movies: movies,
+        };
+      }),
+    );
+
+    const movieGroups = moviePromises.map((promise,index) => {
+      if(promise.status === "fulfilled"){
+        return promise.value;
+      }
+      //Gemini titles array and Promise array are always in same order
+      //,so thats why we used promise index for to access geminititles array value.
+      //If promise is rejected,then apply the code ahead.
+      console.error(`TMDB search failed for ${geminiMovieTitles[index]}: ${promise.reason}`);
+
+      return {
+        geminiTitle: geminiMovieTitles[index],
+        movies: [],
+      };
+    });
+
+    //Sending both search titles and movie groups to client
     res.json({
-      movies: flattenedMovies,
+      geminiMovieTitles: geminiMovieTitles,
+      movieGroups: movieGroups,
     });
   } catch (error) {
     console.error("Gemini error: ", error.message);
