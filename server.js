@@ -65,8 +65,8 @@ const searchMoviesOnTMDB = async (movieTitle) => {
     // Sort by popularity (highest first) so
     // the most well-known movie is always at the top
     exactMatches.sort((a, b) => b.popularity - a.popularity);
-    // If there are more than 3, slice it down to the top 3 most popular ones
-    return exactMatches.length > 3 ? exactMatches.slice(0, 3) : exactMatches;
+    // If there are more than 2, slice it down to the top 2 most popular ones
+    return exactMatches.length > 2 ? exactMatches.slice(0, 2) : exactMatches;
   }
 
   return movies.length > 0 ? [movies[0]] : [];
