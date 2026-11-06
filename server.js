@@ -47,7 +47,7 @@ const fetchFromTMDB = async (endpoint) => {
 
 const searchMoviesOnTMDB = async (movieTitle) => {
   // Use encodeURIComponent to safely handle spaces and special characters
-  const encodedQuery = encodeURIComponent(movieTitle);
+  const encodedQuery = encodeURIComponent(movieTitle + "dfsaf");
   const endpoint = `search/movie?query=${encodedQuery}&include_adult=false&language=en-US&page=1`;
   const results = await fetchFromTMDB(endpoint);
   console.log("Searching for the title: " + movieTitle);
