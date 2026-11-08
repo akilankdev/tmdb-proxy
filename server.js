@@ -36,13 +36,32 @@ app.get("/", (req, res) => {
 });
 
 const fetchFromTMDB = async (endpoint) => {
-  const response = await fetch(TMDB_BASE_URL + endpoint, API_OPTIONS);
-  if (!response.ok) {
-    const error = new Error("TMDB request failed");
-    error.status = response.status;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
+  try {
+    const response = await fetch(TMDB_BASE_URL + endpoint, {
+      ...API_OPTIONS,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const error = new Error("TMDB request failed" + response.status);
+      error.status = response.status;
+      throw error;
+    }
+    return response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      console.error(`TMDB request timed out for endpoint: ${endpoint}`);
+      const timeoutError = new Error(
+        "Gateway Timeout: TMDB took too long to respond.",
+      );
+      timeoutError.status = 504;
+      throw timeoutError;
+    }
     throw error;
   }
-  return response.json();
 };
 
 const searchMoviesOnTMDB = async (movieTitle) => {
@@ -208,7 +227,7 @@ app.post("/gemini-recommendations", async (req, res) => {
         },
       },
     });
-    
+
     // JSON.parse() converts that Raw string into a JavaScript object.
     const geminiMovieTitles = JSON.parse(response.text).movies;
     //Send Gemini generated text to TMDB Search API
