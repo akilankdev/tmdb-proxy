@@ -166,6 +166,14 @@ app.get(
   "/rated-shows",
   handleTMDBRequest("tv/top_rated?language=en-US&page=1"),
 );
+app.get("/health", (req, res) => {
+  console.log("Health check received");
+
+  res.status(200).json({
+    status: "OK",
+    message: "Render backend is responding",
+  });
+});
 
 app.post("/gemini-recommendations", async (req, res) => {
   try {
@@ -200,10 +208,10 @@ app.post("/gemini-recommendations", async (req, res) => {
         },
       },
     });
-    //Send Gemini generated text to the client
+    
     // JSON.parse() converts that Raw string into a JavaScript object.
     const geminiMovieTitles = JSON.parse(response.text).movies;
-
+    //Send Gemini generated text to TMDB Search API
     const moviePromises = await Promise.allSettled(
       geminiMovieTitles.map(async (movieTitle) => {
         const movies = await searchMoviesOnTMDB(movieTitle);
