@@ -36,32 +36,20 @@ app.get("/", (req, res) => {
 });
 
 const fetchFromTMDB = async (endpoint) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 7000);
   try {
-    const response = await fetch(TMDB_BASE_URL + endpoint, {
-      ...API_OPTIONS,
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+    const response = await fetch(TMDB_BASE_URL + endpoint,
+      API_OPTIONS
+    );
     if (!response.ok) {
-      const error = new Error("TMDB request failed" + response.status);
+      const error = new Error("TMDB request failed: " + response.status);
       error.status = response.status;
       throw error;
     }
-    return response.json();
+    return await response.json();
   } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === "AbortError") {
-      console.error(`TMDB request timed out for endpoint: ${endpoint}`);
-      const timeoutError = new Error(
-        "Gateway Timeout: TMDB took too long to respond.",
-      );
-      timeoutError.status = 504;
-      throw timeoutError;
-    }
+    console.log(error);
     throw error;
-  }
+    }
 };
 
 const searchMoviesOnTMDB = async (movieTitle) => {
@@ -153,6 +141,13 @@ app.get(
     (req) => "movie/" + req.params.movieId + "/videos?language=en-US",
   ),
 );
+//GET MOVIE DETAILS
+
+app.get('/movie/:movieId',
+  handleDynamicTMDBRequest(
+    (req) => `movie/${req.params.movieId}?language=en-US`,
+  ),
+)
 
 //For getting Show Details
 app.get(
