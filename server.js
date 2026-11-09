@@ -165,6 +165,14 @@ app.get(
     (req) => "tv/" + req.params.seriesId + "/videos?language=en-US",
   ),
 );
+//GET SIMILAR MOVIES
+app.get("/movie/:movieId/similar",handleDynamicTMDBRequest(
+  (req) => `movie/${req.params.movieId}/similar?language=en-US&page=1`
+));
+//GET SIMILAR SHOWS
+app.get("/tv/:showId/similar",handleDynamicTMDBRequest(
+  (req)=> `tv/${req.params.showId}/similar?language=en-US&page=1`
+));
 
 app.get(
   "/top-rated",
