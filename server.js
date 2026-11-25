@@ -24,7 +24,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://netflix-gpt-flax-zeta.vercel.app",
+      "https://streamflix-gpt-flax-zeta.vercel.app",
     ],
   }),
 );
@@ -133,7 +133,7 @@ app.get("/search", async (req, res) => {
   }
 });
 
-//For getting movie related Videos
+//GET MOVIE RELATED VIDEOS
 app.get(
   "/movie/:movieId/videos",
   handleDynamicTMDBRequest(
@@ -149,7 +149,7 @@ app.get('/movie/:movieId',
   ),
 )
 
-//For getting Show Details
+//GET SHOW DETAILS
 app.get(
   "/tv/:seriesId",
   handleDynamicTMDBRequest(
@@ -157,7 +157,7 @@ app.get(
     (req) => "tv/" + req.params.seriesId + "?language=en-US",
   ),
 );
-//For getting Show related Videos
+//GET SHOW RELATED VIDEOS
 app.get(
   "/tv/:seriesId/videos",
   handleDynamicTMDBRequest(
